@@ -38,4 +38,4 @@ logs/
 private-keys.txt
 
 # Ganache database
-ganache-db/
+ganache_db/
