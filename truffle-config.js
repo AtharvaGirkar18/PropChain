@@ -71,7 +71,7 @@ module.exports = {
    */
   compilers: {
     solc: {
-      version: "0.8.0", // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.8.20", // Bumped from 0.8.0 — custom errors (OPT 4) require >=0.8.4
       // docker: true,            // Use "0.5.1" you've installed locally with docker
       // settings: {
       //   optimizer: {

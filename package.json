@@ -23,12 +23,17 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@openzeppelin/contracts": "^5.6.1",
     "@truffle/contract": "^4.6.0",
     "@truffle/hdwallet-provider": "^2.1.12",
-    "truffle": "^5.11.5",
-    "ganache": "^7.9.1"
+    "dotenv": "^17.4.2",
+    "ganache": "^7.9.1",
+    "hardhat": "^3.13.0",
+    "truffle": "^5.11.5"
   },
   "dependencies": {
     "web3": "^4.0.1"
-  }
+  },
+  "type": "module"
 }

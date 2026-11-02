@@ -1,0 +1,56 @@
+{
+  "contractName": "PoolPriceOracle",
+  "abi": [
+    {
+      "inputs": [
+        { "internalType": "address", "name": "poolAddress", "type": "address" },
+        { "internalType": "address", "name": "base", "type": "address" },
+        { "internalType": "address", "name": "quote", "type": "address" },
+        { "internalType": "uint256", "name": "twapWindowSeconds", "type": "uint256" }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    { "inputs": [], "name": "TwapNotReady", "type": "error" },
+    { "inputs": [], "name": "InsufficientLiquidity", "type": "error" },
+    {
+      "inputs": [],
+      "name": "getSpotPrice",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getTwapPrice",
+      "outputs": [
+        { "internalType": "uint256", "name": "priceE18", "type": "uint256" },
+        { "internalType": "uint256", "name": "actualWindowSeconds", "type": "uint256" },
+        { "internalType": "uint256", "name": "updatedAt", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "update",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "windowSeconds",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastUpdateTime",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}

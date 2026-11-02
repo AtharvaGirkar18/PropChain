@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@walletconnect/core": "^2.23.10",
+    "@web3modal/ethers": "^5.1.11",
+    "ethers": "^6.17.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "web3": "^4.0.1"
+    "react-router-dom": "^6.30.4",
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",

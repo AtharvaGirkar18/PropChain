@@ -1,6 +1,7 @@
-import Web3 from "web3";
+import { BrowserProvider, Contract, formatEther } from "ethers";
 
-let web3;
+let browserProvider;
+let signer;
 let selectedAccount;
 
 /**
@@ -18,31 +19,28 @@ export const detectProvider = () => {
  */
 export const connectWallet = async () => {
   try {
-    const provider = detectProvider();
-    if (!provider) {
+    const injectedProvider = detectProvider();
+    if (!injectedProvider) {
       throw new Error(
         "MetaMask not installed. Please install MetaMask extension.",
       );
     }
 
-    // Request account access
-    const accounts = await provider.request({
+    const accounts = await injectedProvider.request({
       method: "eth_requestAccounts",
     });
 
-    console.log("All available accounts:", accounts);
     selectedAccount = accounts[0];
-    console.log("Selected account:", selectedAccount);
-    web3 = new Web3(provider);
-
-    // Log current network info
-    const chainId = await web3.eth.getChainId();
-    console.log("Connected to chain ID:", chainId);
+    browserProvider = new BrowserProvider(injectedProvider);
+    signer = await browserProvider.getSigner();
+    const network = await browserProvider.getNetwork();
 
     return {
       success: true,
       account: selectedAccount,
-      web3: web3,
+      provider: browserProvider,
+      signer,
+      chainId: Number(network.chainId),
     };
   } catch (error) {
     return {
@@ -60,18 +58,33 @@ export const getAccount = () => {
 };
 
 /**
- * Get Web3 instance
+ * Get Ethers provider instance
  */
-export const getWeb3 = () => {
-  if (!web3) {
-    const provider = detectProvider();
-    if (provider) {
-      web3 = new Web3(provider);
+export const getProvider = () => {
+  if (!browserProvider) {
+    const injectedProvider = detectProvider();
+    if (injectedProvider) {
+      browserProvider = new BrowserProvider(injectedProvider);
     } else {
-      throw new Error("Web3 not initialized. Please connect wallet first.");
+      throw new Error("Provider not initialized. Please connect wallet first.");
     }
   }
-  return web3;
+  return browserProvider;
+};
+
+/**
+ * Backward compatibility alias for old imports
+ */
+export const getWeb3 = getProvider;
+
+/**
+ * Get Ethers signer
+ */
+export const getSigner = async () => {
+  if (signer) return signer;
+  const provider = getProvider();
+  signer = await provider.getSigner();
+  return signer;
 };
 
 /**
@@ -81,8 +94,11 @@ export const getWeb3 = () => {
  */
 export const getContract = (abi, address) => {
   try {
-    const web3Instance = getWeb3();
-    return new web3Instance.eth.Contract(abi, address);
+    const contractAbi = Array.isArray(abi) ? abi : abi.abi;
+    if (!address) throw new Error("Contract address is missing");
+
+    const provider = getProvider();
+    return new Contract(address, contractAbi, signer || provider);
   } catch (error) {
     throw new Error(`Failed to get contract: ${error.message}`);
   }
@@ -94,143 +110,27 @@ export const getContract = (abi, address) => {
 export const getBalance = async (account) => {
   try {
     if (!account) {
-      console.error("No account provided to getBalance");
       return "0";
     }
 
-    // Make sure provider is available
-    const provider = detectProvider();
-    if (!provider) {
-      console.error("No provider detected");
-      return "0";
-    }
-
-    const web3Instance = new Web3(provider);
-    console.log("Fetching balance for:", account);
-
-    const balanceWei = await web3Instance.eth.getBalance(account);
-    console.log("Raw balance in Wei:", balanceWei);
-
-    // balanceWei could be 0n (BigInt zero), so check for null/undefined specifically
-    if (balanceWei == null) {
-      console.error("No balance returned");
-      return "0";
-    }
-
-    const balanceEth = web3Instance.utils.fromWei(
-      balanceWei.toString(),
-      "ether",
-    );
-    console.log("Converted balance in ETH:", balanceEth);
-
-    return balanceEth;
+    const provider = getProvider();
+    const balanceWei = await provider.getBalance(account);
+    return formatEther(balanceWei);
   } catch (error) {
-    console.error("Error fetching balance:", error.message, error);
     return "0";
   }
 };
 
 /**
- * Convert Wei to Ether
- */
-export const fromWei = (value) => {
-  const web3Instance = getWeb3();
-  return web3Instance.utils.fromWei(value, "ether");
-};
-
-/**
- * Convert Ether to Wei
- */
-export const toWei = (value) => {
-  const web3Instance = getWeb3();
-  return web3Instance.utils.toWei(value.toString(), "ether");
-};
-
-/**
- * Check if connected to Ganache (development network)
- */
-export const isConnectedToGanache = async () => {
-  try {
-    const web3Instance = getWeb3();
-    const chainId = await web3Instance.eth.getChainId();
-    // Ganache default chain ID is 1337 or 5777
-    return chainId === 1337 || chainId === 5777 || chainId === 1; // 1 is for local development
-  } catch (error) {
-    return false;
-  }
-};
-
-/**
- * Get network info
- */
-export const getNetworkInfo = async () => {
-  try {
-    const web3Instance = getWeb3();
-    const chainId = await web3Instance.eth.getChainId();
-    const blockNumber = await web3Instance.eth.getBlockNumber();
-    const gasPrice = await web3Instance.eth.getGasPrice();
-
-    return {
-      chainId,
-      blockNumber,
-      gasPrice: web3Instance.utils.fromWei(gasPrice, "gwei"),
-    };
-  } catch (error) {
-    throw new Error(`Failed to get network info: ${error.message}`);
-  }
-};
-
-/**
- * Estimate gas for a transaction
- */
-export const estimateGas = async (to, data, value = 0) => {
-  try {
-    const web3Instance = getWeb3();
-    const gas = await web3Instance.eth.estimateGas({
-      from: selectedAccount,
-      to: to,
-      data: data,
-      value: value,
-    });
-    return gas;
-  } catch (error) {
-    throw new Error(`Failed to estimate gas: ${error.message}`);
-  }
-};
-
-/**
- * Extract Solidity revert reason from error
- * Handles different error formats from web3.js and MetaMask
- * @param {Error} error - The error object from contract call
- * @returns {String} The extracted error message
+ * Extract readable message from Ethers errors
  */
 export const extractSolidityError = (error) => {
-  const errorStr = error.toString();
-  
-  // Try to extract from error data
-  if (error.data) {
-    const data = error.data;
-    if (data.message) return data.message;
-  }
-  
-  // Try to extract from error message field
-  if (error.message) {
-    const message = error.message;
-    
-    // Look for revert reason in parentheses
-    const revertMatch = message.match(/reverted with reason string "(.*?)"/);
-    if (revertMatch && revertMatch[1]) {
-      return revertMatch[1];
-    }
-    
-    // Look for execution reverted message
-    if (message.includes("execution reverted")) {
-      return message;
-    }
-  }
-  
-  // Return original error string if no specific format found
-  return errorStr;
+  if (!error) return "Unknown error";
+  if (error.reason) return error.reason;
+  if (error.shortMessage) return error.shortMessage;
+  if (error.data?.message) return error.data.message;
+  if (error.message) return error.message;
+  return String(error);
 };
 
 /**
@@ -238,10 +138,11 @@ export const extractSolidityError = (error) => {
  */
 export const watchAccountChanges = (callback) => {
   try {
-    const provider = detectProvider();
-    if (provider) {
-      provider.on("accountsChanged", (accounts) => {
+    const injectedProvider = detectProvider();
+    if (injectedProvider) {
+      injectedProvider.on("accountsChanged", (accounts) => {
         selectedAccount = accounts[0];
+        signer = null;
         callback(accounts[0]);
       });
     }
@@ -255,10 +156,9 @@ export const watchAccountChanges = (callback) => {
  */
 export const watchChainChanges = (callback) => {
   try {
-    const provider = detectProvider();
-    if (provider) {
-      provider.on("chainChanged", (chainId) => {
-        // Chain ID is in hex format
+    const injectedProvider = detectProvider();
+    if (injectedProvider) {
+      injectedProvider.on("chainChanged", (chainId) => {
         callback(parseInt(chainId, 16));
       });
     }

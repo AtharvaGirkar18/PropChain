@@ -1,554 +1,453 @@
-# 🏠 Land Registry DApp - Blockchain-Based Property Ownership System
+﻿# 🏠 Land Registry DApp — Blockchain-Powered Property Ecosystem
 
-A decentralized application (DApp) for managing property ownership and resolving disputes using Ethereum smart contracts. This project demonstrates a solution to India's broken land registry system by leveraging blockchain technology.
+A full-stack decentralised application (DApp) on Ethereum that reimagines India's property ownership system. What started as a simple land registry has grown into a complete DeFi ecosystem around real-world assets — featuring tokenised properties, an AMM liquidity pool, a multi-pool DEX, LP staking rewards, Chainlink price feeds, an on-chain governance DAO, and a smart-contract security lab.
+
+**Live on Sepolia Testnet · React 18 frontend · ethers.js v6**
+
+---
 
 ## 📋 Table of Contents
 
-- [Project Overview](#project-overview)
-- [Problem Statement](#problem-statement)
-- [Solution](#solution)
-- [Tech Stack](#tech-stack)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Installation & Setup](#installation--setup)
-- [Development Workflow](#development-workflow)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Usage Guide](#usage-guide)
-- [Lab Milestones](#lab-milestones)
+- [Problem Statement](#-problem-statement)
+- [Solution](#-solution)
+- [Tech Stack](#-tech-stack)
+- [Smart Contracts](#-smart-contracts)
+- [Frontend Pages](#-frontend-pages)
+- [Project Structure](#-project-structure)
+- [Installation & Setup](#-installation--setup)
+- [Contract Addresses — Sepolia](#-contract-addresses--sepolia)
+- [Usage Guide](#-usage-guide)
+- [Testing](#-testing)
+- [Troubleshooting](#-troubleshooting)
+- [Resources](#-resources)
 
-## 📖 Project Overview
+---
 
-This is a college lab project for **Lab 7 & Lab 8**, implementing a blockchain-based National Property Register using Solidity smart contracts, Truffle framework, and React frontend.
-
-### Problem Statement
+## ❗ Problem Statement
 
 India's land registry system suffers from:
 
-- 🚫 **Fake Documents**: Forged property deeds and titles are common
-- ⚖️ **Disputes**: Unclear ownership leading to legal battles
-- 🔓 **No Transparency**: Centralized records are vulnerable to tampering
-- 🔗 **Broken Chain of Title**: Hard to verify complete ownership history
+| Issue | Impact |
+|---|---|
+| 🚫 Forged property deeds | Fraudulent ownership claims |
+| ⚖️ Opaque dispute resolution | Prolonged legal battles |
+| 🔓 Centralised records | Vulnerable to tampering & corruption |
+| 🔗 Broken chain of title | Hard to verify complete ownership history |
+| 💸 Illiquid real estate | Capital locked in physical assets |
 
-### Solution
+---
 
-A blockchain-based property register that provides:
+## ✅ Solution
 
-- ✅ **Immutable Records**: All transactions recorded permanently on blockchain
-- 🔍 **Transparent**: Complete ownership history visible to all stakeholders
-- ⏰ **Timestamped**: Every action recorded with exact timestamp
-- 🛡️ **Tamper-Proof**: Cryptographic security prevents fraud
-- 📜 **Document Hash**: IPFS integration for document verification
+A blockchain-based property ecosystem that provides:
+
+- **Immutable Records** — every registration & transfer permanently on-chain
+- **Transparent Disputes** — anyone can raise, track, and verify dispute resolution
+- **Tokenised Properties** — ERC-20 property tokens unlock DeFi liquidity for real assets
+- **AMM Trading & Liquidity** — permissionless constant-product pools for PROP/mUSDC and DCE/mUSDC
+- **LP Staking Rewards** — earn DCE tokens by providing liquidity
+- **Multi-Pool DEX Router** — optimal swap routing across pools
+- **Chainlink Price Feeds** — live ETH/USD oracle + on-chain TWAP
+- **Decentralised Governance** — DCE holders vote on protocol changes via DAO
+- **Security Education** — built-in flash-loan vulnerability lab
+
+---
 
 ## 🛠️ Tech Stack
 
-| Component        | Technology                  |
-| ---------------- | --------------------------- |
-| Smart Contracts  | Solidity ^0.8.0             |
-| Blockchain       | Ethereum                    |
-| Local Network    | Ganache                     |
-| Framework        | Truffle Suite               |
-| Testing          | Truffle Test (Mocha + Chai) |
-| Frontend         | React 18                    |
-| Web3 Integration | Web3.js v4                  |
-| Wallet           | MetaMask                    |
-| Storage          | IPFS (for documents)        |
+| Layer | Technology |
+|---|---|
+| Smart Contracts | Solidity ^0.8.0 |
+| Blockchain | Ethereum (Sepolia Testnet + Ganache local) |
+| Dev Frameworks | Truffle Suite, Hardhat |
+| Testing | Mocha + Chai (via Truffle) |
+| Frontend | React 18 |
+| Web3 Library | ethers.js v6 |
+| Wallet | MetaMask |
+| Price Feeds | Chainlink AggregatorV3Interface |
+| Token Standard | ERC-20 (MockUSDC, DCEToken, PropertyToken) |
+| Deployment IDE | Remix IDE (for Sepolia) |
 
-## ✨ Features
+---
 
-### Contract 1: LandRegistry.sol
+## 📜 Smart Contracts
 
-Register and manage property ownership:
+### Exp 1 — Core Land Registry
 
-- 📝 **Register Property**: Record new property with details
-  - Owner address, location, area, price, document hash
-  - Automatic timestamp and unique ID
+| Contract | Purpose |
+|---|---|
+| `LandRegistry.sol` | Register properties, transfer ownership, manage disputes, full chain-of-title |
+| `PropertyDispute.sol` | Raise & resolve disputes; auto-locks transfers on disputed properties |
 
-- 🔄 **Transfer Ownership**: Transfer property to new owner
-  - Requires current owner signature (onlyPropertyOwner)
-  - Cannot transfer if disputed (propertyNotDisputed)
-  - Maintains full ownership history
+**LandRegistry highlights:**
+- Register property with owner address, location, area, price, document hash (IPFS CID)
+- Ownership transfer blocked when a dispute is active
+- Admin-controlled dispute flagging
+- Complete history of all previous owners stored on-chain
 
-- 📋 **View Details**: Retrieve property information
-  - All metadata: location, area, price, documents
-  - Owner and dispute status
-  - Registration timestamp
+**PropertyDispute highlights:**
+- Anyone can raise a dispute with an on-chain reason
+- Admin resolves with a permanently stored resolution note
+- Syncs disputed status back to `LandRegistry`
 
-- ⚠️ **Manage Disputes**: Mark and resolve disputes
-  - Admin-only dispute marking
-  - Prevent transfers of disputed properties
-  - Track dispute status
+---
 
-- 🔗 **Ownership History**: Complete chain of title
-  - All previous owners recorded
-  - Full transaction history
+### Exp 3 — Tokenised Properties & Vault
 
-### Contract 2: PropertyDispute.sol
+| Contract | Purpose |
+|---|---|
+| `MockUSDC.sol` | ERC-20 test stablecoin (mUSDC) |
+| `PropertyToken.sol` | ERC-20 representing fractional property ownership (PROP) |
+| `PropertyVault.sol` | Deposit PROP as collateral, borrow mUSDC against it |
 
-Manage property disputes transparently:
+---
 
-- 🚩 **Raise Dispute**: Anyone can raise a dispute with reason
-  - Reason documented on-chain
-  - Automatically marks property as disputed
-  - Prevents future transfers
+### Exp 4 — AMM Liquidity Pool
 
-- ✅ **Resolve Dispute**: Admin can resolve with resolution details
-  - Only admin/government can resolve
-  - Resolution documented permanently
-  - Clears property disputed status
+| Contract | Purpose |
+|---|---|
+| `LiquidityPool.sol` | Constant-product AMM (x·y=k) for any ERC-20 pair |
 
-- 📍 **View Disputes**: Check all disputes for a property
-  - Active and resolved disputes
-  - Original reason and resolution
-  - Status of each dispute
+**Highlights:**
+- Add & remove liquidity — LP tokens issued proportionally
+- Token swaps with 0.3% fee distributed to liquidity providers
+- Real-time price discovery from pool reserves
 
-### Frontend: React DApp
+---
 
-User-friendly interface with four tabs:
+### Exp 5 — DCE Token & Staking Rewards
 
-1. **📝 Register Property** - Register new properties
-2. **🔄 Transfer Ownership** - Transfer between accounts
-3. **📋 Property Details** - View and verify properties
-4. **⚠️ Disputes** - Manage property disputes
+| Contract | Purpose |
+|---|---|
+| `DCEToken.sol` | ERC-20 governance & rewards token |
+| `StakingRewards.sol` | Stake LP tokens to earn DCE; rewards are pro-rata and time-weighted |
+
+---
+
+### Exp 6 — Multi-Pool DEX Router
+
+| Contract | Purpose |
+|---|---|
+| `DEXRouter.sol` | Routes swaps through multiple AMM pools; supports direct and multi-hop paths (PROP → mUSDC → DCE) |
+
+---
+
+### Exp 7 — Chainlink Price Feeds & TWAP Oracle
+
+| Contract | Purpose |
+|---|---|
+| `PriceFeedConsumer.sol` | Reads live ETH/USD price from Chainlink AggregatorV3 on Sepolia |
+| `PoolPriceOracle.sol` | TWAP oracle built from on-chain AMM reserve snapshots |
+
+---
+
+### Exp 8 — On-Chain Governance DAO
+
+| Contract | Purpose |
+|---|---|
+| `GovernanceDAO.sol` | DCE-weighted governance: create proposals, vote for/against, execute passed proposals |
+| `PropertyTokenFactory.sol` | Factory for deploying new ERC-20 property tokens, governable via DAO |
+
+**DAO mechanics:**
+- Configurable voting period and quorum (basis-points of total DCE supply)
+- Passed proposals execute arbitrary `callData` on any target contract
+- `hasVoted[proposalId][voter]` prevents double-voting per address
+
+---
+
+### Exp 9 — Smart Contract Security Lab
+
+| Contract | Purpose |
+|---|---|
+| `VulnerablePool.sol` | Intentionally exploitable pool (re-entrancy, flash-loan price manipulation) |
+| `SecurePool.sol` | Hardened version: CEI pattern, re-entrancy guard, TWAP validation |
+| `FlashLoanAttacker.sol` | Demonstrates the exploit live against `VulnerablePool` |
+| `GasOptimizationShowcase.sol` | Side-by-side gas-inefficient vs optimised Solidity patterns |
+
+---
+
+## 🖥️ Frontend Pages
+
+| Route | Page | What you can do |
+|---|---|---|
+| `/` | **Property Detail** | Search any property by ID; view metadata, ownership history, dispute status |
+| `/marketplace` | **Marketplace** | Browse all properties, register new ones, transfer ownership |
+| `/vault` | **Vault Dashboard** | Deposit PROP collateral, borrow mUSDC, repay loans |
+| `/trade` | **Trade (DEX)** | Swap tokens, add/remove liquidity on AMM pools |
+| `/stake` | **Stake & Earn** | Stake LP tokens, watch rewards accrue, claim DCE |
+| `/oracle` | **Price Oracle** | Live Chainlink ETH/USD feed |
+| `/prop-oracle` | **Prop Price Oracle** | PROP/mUSDC TWAP from on-chain pool data |
+| `/governance` | **Governance & Disputes** | Create & vote on DAO proposals; manage property disputes |
+| `/security` | **Security Lab** | Run flash-loan attack on VulnerablePool; test SecurePool defence |
+| `/gas` | **Gas Optimizations** | Interactive gas-cost comparison of contract patterns |
+| `/admin` | **Admin** | Admin-only: dispute management, minting, configuration |
+
+---
 
 ## 📂 Project Structure
 
 ```
-land-registry-dapp/
-├── contracts/
-│   ├── LandRegistry.sol          # Main property registry contract
-│   └── PropertyDispute.sol       # Dispute management contract
+land_registry_dapp/
 │
-├── migrations/
-│   ├── 1_initial_migration.js    # Truffle migrations setup
-│   └── 2_deploy_contracts.js     # Deploy both contracts
+├── contracts/                          # All Solidity smart contracts
+│   ├── LandRegistry.sol                # Exp 1
+│   ├── PropertyDispute.sol             # Exp 1
+│   ├── MockUSDC.sol                    # Exp 3
+│   ├── PropertyToken.sol               # Exp 3
+│   ├── PropertyVault.sol               # Exp 3
+│   ├── LiquidityPool.sol               # Exp 4
+│   ├── DCEToken.sol                    # Exp 5
+│   ├── StakingRewards.sol              # Exp 5
+│   ├── DEXRouter.sol                   # Exp 6
+│   ├── PriceFeedConsumer.sol           # Exp 7
+│   ├── PoolPriceOracle.sol             # Exp 7
+│   ├── GovernanceDAO.sol               # Exp 8
+│   ├── PropertyTokenFactory.sol        # Exp 8
+│   ├── VulnerablePool.sol              # Exp 9
+│   ├── SecurePool.sol                  # Exp 9
+│   ├── FlashLoanAttacker.sol           # Exp 9
+│   └── GasOptimizationShowcase.sol     # Exp 9
 │
-├── test/
-│   ├── LandRegistry.test.js      # Tests for LandRegistry
-│   └── PropertyDispute.test.js   # Tests for PropertyDispute
+├── migrations/                         # Truffle deploy scripts
+├── test/                               # Mocha/Chai test suites
+├── scripts/                            # Utility scripts
 │
-├── client/                        # React Frontend
-│   ├── public/
-│   │   └── index.html
-│   ├── src/
-│   │   ├── App.js               # Main React component
-│   │   ├── App.css              # Styling
-│   │   ├── index.js
-│   │   ├── index.css
-│   │   ├── components/
-│   │   │   ├── RegisterProperty.js
-│   │   │   ├── TransferOwnership.js
-│   │   │   ├── PropertyDetails.js
-│   │   │   └── DisputePanel.js
-│   │   ├── utils/
-│   │   │   └── web3.js          # Web3 utilities & helpers
-│   │   └── contracts/           # Contract ABIs (generated after compile)
-│   └── package.json
+├── client/                             # React 18 frontend
+│   └── src/
+│       ├── App.js                      # Router & global layout
+│       ├── App.css                     # Dark-theme global styles
+│       ├── abis/                       # Contract ABI JSON files
+│       ├── config/
+│       │   └── contracts.js            # Chain ID -> address map (all networks)
+│       ├── context/
+│       │   └── WalletContext.js        # ethers.js provider/signer React context
+│       ├── hooks/                      # Custom React hooks
+│       ├── components/                 # Reusable UI components
+│       │   ├── RegisterProperty.js
+│       │   ├── TransferOwnership.js
+│       │   ├── PropertyDetails.js
+│       │   ├── DisputePanel.js
+│       │   ├── CreateProposal.js
+│       │   ├── ProposalCard.js
+│       │   ├── VaultPanel.js
+│       │   ├── StakePanel.js
+│       │   ├── RewardsClaim.js
+│       │   ├── SwapPanel.js
+│       │   ├── AddLiquidity.js
+│       │   ├── RemoveLiquidity.js
+│       │   ├── PoolStats.js
+│       │   ├── MintFaucet.js
+│       │   └── PriceTicker.js
+│       └── pages/                      # One file per route
+│           ├── Marketplace.js
+│           ├── PropertyDetail.js
+│           ├── VaultDashboard.js
+│           ├── Trade.js
+│           ├── Stake.js
+│           ├── Oracle.js
+│           ├── PropPriceOracle.js
+│           ├── Governance.js
+│           ├── SecurityLab.js
+│           ├── GasOptimizations.js
+│           └── Admin.js
 │
-├── truffle-config.js             # Truffle configuration
-├── package.json                  # Project dependencies
-└── README.md                      # This file
+├── truffle-config.js
+├── hardhat.config.js
+├── .env.example
+└── package.json
 ```
-
-## 🚀 Installation & Setup
-
-### Phase 1: Initial Setup (Day 1)
-
-#### 1. Install Required Tools
-
-```bash
-# Install Node.js (if not already installed)
-# Download from https://nodejs.org/ (LTS version recommended)
-
-# Install Truffle globally
-npm install -g truffle
-
-# Install Ganache Desktop
-# Download from https://trufflesuite.com/ganache/
-```
-
-#### 2. Project Setup
-
-```bash
-# Navigate to project directory
-cd land-registry-dapp
-
-# Install dependencies
-npm install
-
-# Initialize Truffle project (if not already done)
-# truffle init
-```
-
-#### 3. Start Local Blockchain
-
-```bash
-# Open Ganache Desktop App
-# Click "Quickstart Ethereum" to start local blockchain
-# Note: RPC Server should be: http://127.0.0.1:7545
-# Save one of the private keys for later use
-```
-
-### Phase 2: Smart Contracts (Day 1-2)
-
-#### 1. Compile Contracts
-
-```bash
-# In terminal, navigate to project root
-npm run compile
-
-# Or use Truffle directly
-truffle compile
-```
-
-Expected output:
-
-```
-Compiling your contracts...
-✓ Compiled Successfully
-  - Contracts compiled successfully
-  - Artifact saved to src/contracts/
-```
-
-#### 2. Deploy Contracts
-
-```bash
-npm run migrate
-
-# Or manually:
-truffle migrate --network development
-
-# Reset deployment (if needed):
-npm run migrate:reset
-```
-
-Expected output:
-
-```
-Deploying Contracts
-   Replacing 'Migrations'
-   Replacing 'LandRegistry'
-   Replacing 'PropertyDispute'
-   Saving artifacts...
-```
-
-**⚠️ IMPORTANT**: Note the deployed contract addresses! You'll need these for the React frontend.
-
-#### 3. Test Contracts (Optional)
-
-```bash
-npm test
-
-# Or:
-truffle test
-```
-
-### Phase 3: MetaMask Setup
-
-#### 1. Install MetaMask
-
-- Download MetaMask extension for Chrome/Firefox
-- Install and create account
-
-#### 2. Connect to Ganache
-
-1. Open MetaMask
-2. Click Network dropdown → "Add network manually"
-3. Configure:
-   - Network name: `Ganache`
-   - RPC URL: `http://127.0.0.1:7545`
-   - Chain ID: `1337` (or `5777`)
-   - Currency: `ETH`
-4. Click "Save"
-
-#### 3. Import Test Account
-
-1. In Ganache, copy the private key of first account
-2. In MetaMask: Click "Account" → "Import Account"
-3. Paste the private key
-4. This account will be the Admin/Owner
-
-### Phase 4: React Frontend (Day 2-3)
-
-#### 1. Setup React App
-
-```bash
-cd client
-
-# Install dependencies
-npm install
-```
-
-#### 2. Update Contract Addresses
-
-1. Open `client/src/App.js`
-2. Find these lines (around line 30):
-   ```javascript
-   const LAND_REGISTRY_ADDRESS = ""; // Update after migration
-   const PROPERTY_DISPUTE_ADDRESS = ""; // Update after migration
-   ```
-3. Replace with addresses from migration output
-
-#### 3. Copy Contract ABIs
-
-After compilation, copy contract ABIs:
-
-1. From: `build/contracts/`
-2. Copy: `LandRegistry.json` and `PropertyDispute.json`
-3. To: `client/src/contracts/`
-
-#### 4. Start React Development Server
-
-```bash
-npm start
-
-# App will open at http://localhost:3000
-```
-
-## 📝 Development Workflow
-
-### Day 1: Smart Contracts
-
-1. ✅ Write `LandRegistry.sol` (already provided)
-2. ✅ Write `PropertyDispute.sol` (already provided)
-3. ✅ Initialize migrations
-4. ✅ Test locally with `truffle console`
-5. ✅ Test with automated tests
-
-### Day 2: Testing & Refinement
-
-1. ✅ Run test suite: `npm test`
-2. ✅ Debug any issues
-3. ✅ Verify all functions work
-4. ✅ Test ownership transfer logic
-5. ✅ Test dispute management
-
-### Day 3: Frontend Development
-
-1. ✅ Create React components
-2. ✅ Connect MetaMask wallet
-3. ✅ Implement contract interaction
-4. ✅ Test each feature
-5. ✅ Style and polish UI
-
-## 🧪 Testing
-
-### Run All Tests
-
-```bash
-npm test
-```
-
-### Test Cases Included
-
-**LandRegistry.test.js:**
-
-- ✅ Property registration
-- ✅ Ownership transfer
-- ✅ Property details retrieval
-- ✅ Dispute marking and resolution
-- ✅ Ownership history tracking
-- ✅ Input validation
-- ✅ Access control (onlyPropertyOwner, onlyAdmin)
-
-**PropertyDispute.test.js:**
-
-- ✅ Dispute raising
-- ✅ Dispute resolution
-- ✅ Admin-only functions
-- ✅ Property dispute status updates
-
-### Manual Testing in Truffle Console
-
-```bash
-truffle console --network development
-
-# In console:
-> let lr = await LandRegistry.deployed()
-> let tx = await lr.registerProperty("123 Main St", 5000, web3.utils.toWei("10", "ether"), "QmHash123", {from: accounts[0]})
-> let property = await lr.getPropertyDetails(1)
-> property
-```
-
-## 📤 Deployment
-
-### Lab 7: Local Ganache (Current)
-
-- ✅ Deploy to `localhost:7545`
-- ✅ Test with MetaMask connected to Ganache
-- ✅ Demonstrate all features locally
-
-### Lab 8: Sepolia Testnet (Next Phase)
-
-1. Get test ETH from faucet
-2. Configure deployment in `truffle-config.js`
-3. Deploy via Remix IDE or Truffle
-4. Verify on Etherscan Sepolia
-
-## 💻 Usage Guide
-
-### 1. Register a Property
-
-1. Connect MetaMask wallet
-2. Go to "📝 Register Property" tab
-3. Fill in:
-   - Location (e.g., "123 Main Street, New Delhi")
-   - Area (e.g., 5000 sq.m)
-   - Price (in Wei: 1 ETH = 10^18 Wei)
-   - Document Hash (IPFS hash of property documents)
-4. Click "Register Property"
-5. Confirm transaction in MetaMask
-6. Property registered! Note the Property ID
-
-### 2. Transfer Ownership
-
-1. Go to "🔄 Transfer Ownership" tab
-2. Enter Property ID and click "Fetch Details"
-3. Verify you are the current owner
-4. Enter new owner's Ethereum address
-5. Click "Transfer Ownership"
-6. Confirm transaction
-7. Ownership transferred! Only the new owner can now transfer
-
-### 3. View Property Details
-
-1. Go to "📋 Property Details" tab
-2. Enter Property ID
-3. Click "Search"
-4. View:
-   - All property information
-   - Current owner
-   - Dispute status (✅ Clean or ⚠️ Disputed)
-   - Complete ownership history
-   - Document verification link (IPFS)
-
-### 4. Manage Disputes
-
-#### Raise a Dispute (Anyone)
-
-1. Go to "⚠️ Disputes" tab → "🚩 Raise Dispute"
-2. Enter Property ID
-3. Explain the dispute reason
-4. Click "Raise Dispute"
-5. Property automatically marked as disputed
-6. No more transfers allowed until resolved
-
-#### Resolve a Dispute (Admin Only)
-
-1. Go to "⚠️ Disputes" tab → "✅ Resolve Dispute"
-2. Enter Dispute ID
-3. Describe resolution
-4. Click "Resolve Dispute"
-5. Property cleared and can be transferred again
-
-#### View All Disputes
-
-1. Go to "⚠️ Disputes" tab → "📍 View Disputes"
-2. Enter Property ID
-3. See all disputes (active and resolved)
-
-## 📊 Lab Milestones
-
-### Lab 7: DApp Development
-
-- ✅ **Milestone 1**: Smart Contracts
-  - Write `LandRegistry.sol` (register, transfer, manage disputes)
-  - Write `PropertyDispute.sol` (raise, resolve disputes)
-  - Test with Ganache locally
-
-- ✅ **Milestone 2**: Backend Testing
-  - Unit tests for all functions
-  - Integration tests for contract interaction
-  - Error handling and validation
-
-- ✅ **Milestone 3**: Frontend
-  - React UI with 4 tabs
-  - MetaMask wallet connection
-  - Contract interaction via Web3.js
-  - Property management interface
-
-### Lab 8: Testnet Deployment
-
-- Deploy to Sepolia testnet
-- Get test ETH from faucet
-- Verify contracts on Etherscan
-- Demonstrate live transactions
-- Show transaction history
-
-## 🔑 Important Notes
-
-### Addresses & Keys
-
-- **Admin Account**: First Ganache account (has special permissions)
-- **Test Accounts**: Use any other Ganache accounts
-- **Private Keys**: Never share! Only import from Ganache locally
-
-### Gas & Transactions
-
-- Ganache gives unlimited test ETH (free gas)
-- Sepolia testnet requires faucet ETH
-- Gas fees increase with contract complexity
-
-### Known Limitations
-
-1. ABIs must be manually updated after recompilation
-2. Admin hardcoded to deployer account
-3. No role-based access control (RBAC) for multiple admins
-4. IPFS integration for documents (external)
-
-## 🐛 Troubleshooting
-
-### MetaMask Won't Connect
-
-```
-Error: "MetaMask not installed"
-Solution: Install MetaMask extension and refresh page
-```
-
-### Contract Address Not Found
-
-```
-Error: "Contract not found at address"
-Solution: Update addresses in App.js after fresh migration
-         Run: truffle migrate --network development --reset
-```
-
-### Transaction Fails
-
-```
-Error: "You are not the owner of this property"
-Solution: Use the account that registered the property
-         Check account in MetaMask wallet
-```
-
-### IPFS Link Not Working
-
-```
-Error: "Document not accessible"
-Solution: Upload real documents to IPFS first (use pinata.cloud)
-         Use actual IPFS hash in registration
-```
-
-## 📚 Learning Resources
-
-- [Solidity Docs](https://docs.soliditylang.org/)
-- [Truffle Suite](https://trufflesuite.com/)
-- [Web3.js Docs](https://web3js.org/)
-- [MetaMask Guide](https://metamask.io/)
-- [Ethereum Development](https://ethereum.org/developers)
-
-## 👨‍💻 Project by
-
-**Your Name**  
-College Lab Project - Lab 7 & Lab 8  
-Date: 2024
-
-## 📄 License
-
-MIT License - Feel free to use for educational purposes
 
 ---
 
-**Happy DApp Building! 🚀**
+## 🚀 Installation & Setup
 
-For questions or issues, refer to the troubleshooting section or consult the official documentation of each tool.
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v18+ (LTS)
+- [MetaMask](https://metamask.io/) browser extension
+- [Ganache](https://trufflesuite.com/ganache/) desktop app (for local testing)
+- Truffle globally: `npm install -g truffle`
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/<your-username>/land_registry_dapp.git
+cd land_registry_dapp
+
+# Root dependencies (Truffle, Hardhat, etc.)
+npm install
+
+# Frontend dependencies
+cd client && npm install && cd ..
+```
+
+### 2. Configure Environment
+
+```bash
+cp .env.example .env
+# Edit .env — add your Infura/Alchemy project ID and deployer private key
+```
+
+### 3. Local Development (Ganache)
+
+```bash
+# Start Ganache (GUI), or CLI:
+npx ganache --port 7545 --chainId 1337
+
+# Compile & deploy
+truffle compile
+truffle migrate --network development
+
+# Start the frontend
+cd client && npm start
+# Opens http://localhost:3000
+```
+
+**MetaMask — Ganache network settings:**
+
+| Field | Value |
+|---|---|
+| Network Name | `Ganache Local` |
+| RPC URL | `http://127.0.0.1:7545` |
+| Chain ID | `1337` |
+| Currency symbol | `ETH` |
+
+Import a Ganache account private key into MetaMask for admin access.
+
+### 4. Sepolia Testnet
+
+All contracts are already deployed on Sepolia. To connect:
+
+1. Switch MetaMask to **Sepolia**
+2. Get test ETH from [sepoliafaucet.com](https://sepoliafaucet.com/)
+3. `cd client && npm start` — the app auto-detects the chain
+
+---
+
+## 🔗 Contract Addresses — Sepolia
+
+| Contract | Address |
+|---|---|
+| LandRegistry | `0xF14e89a59D995e51Ad967c2e006Af5C65D90DcC2` |
+| PropertyDispute | `0x751CD78eB224810271C218793D561101aB7B6Bd7` |
+| MockUSDC | `0x5282a9DBd046B4d03DBa74f58C85E12a331F3A2f` |
+| PropertyToken (PROP) | `0xaF81486e637dFb386E9Fc0Fb6Dd23bb6F99BABcB` |
+| PropertyVault | `0x3caAfFa8973820AEe86306AAe0857EC9dBFAC3F4` |
+| LiquidityPool — PROP/mUSDC | `0x2d52835e6334E9af8DcAd56B3A8722bD46C27d8C` |
+| LiquidityPool — DCE/mUSDC | `0x74aC68b09A9A35a29f3B6472BC2B5DB3ab20788e` |
+| DCEToken | `0xf385FA8cFEd7b0A82B95a8E28108226359a58380` |
+| StakingRewards | `0x3DaFc468671c9aD825242a46351a0A564ae5cc46` |
+| DEXRouter | `0x2175b721215dcc9d91Fae30F9C9D921b8171c585` |
+| PriceFeedConsumer | `0x0aA8757E71998800A95e8209eb8A9d642A7D04DC` |
+| PoolPriceOracle | `0xC9596e23e74eab5C8415c0f287d035E652db714d` |
+| GovernanceDAO | `0xc6983D96B8737f92fC942F230521564230c0a2EA` |
+| PropertyTokenFactory | `0x7659141C20aE2477a1fE956714FFF37b85554E47` |
+| VulnerablePool | `0x552ebb7B27Dd82435834D3AD22A99afa8F55169A` |
+| SecurePool | `0xb7990C55998B8e9DA6a9a342568aA0D50159C025` |
+| FlashLoanAttacker | `0xd3111bC4c913E5093b8EA7bB379cd5f93ff043fc` |
+
+> Contracts deployed via Remix IDE and Truffle. Verify on [Sepolia Etherscan](https://sepolia.etherscan.io/).
+
+---
+
+## 💻 Usage Guide
+
+### Register a Property
+1. Go to **Marketplace** and connect MetaMask
+2. Fill in location, area (sq.m), price (ETH), and an IPFS document hash
+3. Confirm the MetaMask transaction — the property gets a unique on-chain ID
+
+### Transfer Ownership
+1. Find the property on **Marketplace** or **Property Detail**
+2. Only the current owner can initiate a transfer
+3. Enter the recipient address and confirm — blocked if a dispute is active
+
+### Borrow Against Property (Vault)
+1. Go to **Vault Dashboard**
+2. Approve & deposit PROP tokens as collateral
+3. Borrow mUSDC up to the collateral ratio
+4. Repay the loan to retrieve your PROP
+
+### Swap Tokens / Add Liquidity (DEX)
+1. Go to **Trade**
+2. Select input/output tokens — the Router auto-routes through pools
+3. Switch to the **Liquidity** tab to add/remove liquidity and receive LP tokens
+
+### Stake LP Tokens for DCE Rewards
+1. Add liquidity on **Trade** to receive LP tokens
+2. Go to **Stake**, deposit LP tokens
+3. DCE rewards accrue every block — claim anytime
+
+### View Price Feeds
+- **Oracle** — live Chainlink ETH/USD, updated every block
+- **Prop Price Oracle** — PROP/mUSDC TWAP from on-chain pool snapshots
+
+### Governance — Create & Vote on Proposals
+1. Hold DCE tokens (earn via staking or buy on DEX)
+2. Go to **Governance → Community DAO**
+3. Create a proposal (description, target contract, encoded calldata)
+4. DCE holders vote **For** or **Against** during the voting window
+5. When voting closes with quorum + majority, anyone can execute the proposal on-chain
+
+### Disputes — Raise & Resolve
+1. Go to **Governance → Property Disputes**
+2. Any address can raise a dispute — property is immediately locked from transfers
+3. Admin resolves with a permanent on-chain resolution note — property is unlocked
+
+### Security Lab
+1. Go to **Security Lab**
+2. Read the vulnerability explanation for `VulnerablePool`
+3. Click **Run Attack** — the attacker contract drains the pool via flash-loan re-entrancy
+4. Run the same attack against `SecurePool` and observe it revert
+5. Compare gas and code differences in **Gas Optimizations**
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all contract tests
+truffle test
+
+# Run a specific suite
+truffle test test/LandRegistry.test.js
+truffle test test/PropertyDispute.test.js
+```
+
+Coverage includes:
+- Property registration, transfer, ownership history
+- Dispute raising, resolution, transfer locking
+- Access control (`onlyOwner`, `onlyAdmin`, `onlyPropertyOwner`)
+- Input validation and revert conditions
+
+---
+
+## 🐛 Troubleshooting
+
+| Error | Likely Cause | Fix |
+|---|---|---|
+| `MetaMask not installed` | Extension missing | Install MetaMask and refresh the page |
+| `no matching fragment` | ABI out of sync with contract | Re-copy ABI from `build/contracts/` or Remix compilation output |
+| `You are not the owner` | Wrong MetaMask account selected | Switch to the account that registered the property |
+| `Property is disputed` | Transfer blocked by active dispute | Resolve the dispute first using an admin account |
+| `nonce too high` | Stale nonce after Ganache restart | MetaMask → Settings → Advanced → **Reset Account** |
+| Blank `/governance` page | DAO address not set | Add `governanceDAO` address in `client/src/config/contracts.js` |
+| Pool swap reverts | Pool has no liquidity seeded | Add initial liquidity on the Trade page first |
+
+---
+
+## 📚 Resources
+
+- [Solidity Docs](https://docs.soliditylang.org/)
+- [ethers.js v6 Docs](https://docs.ethers.org/v6/)
+- [Chainlink Price Feeds](https://docs.chain.link/data-feeds)
+- [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/)
+- [Truffle Suite Docs](https://trufflesuite.com/docs/)
+- [Sepolia Etherscan](https://sepolia.etherscan.io/)
+- [Sepolia Faucet](https://sepoliafaucet.com/)
+
+---
+
+## 📄 License
+
+MIT — free to use for educational purposes.

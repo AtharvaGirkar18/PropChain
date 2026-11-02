@@ -75,14 +75,6 @@ export async function uploadToPinata(file, fileName = null) {
     }
 
     return await uploadWithAPIKey(formData, apiKey, apiSecret);
-
-    if (!apiKey || !apiSecret) {
-      throw new Error(
-        "Pinata credentials not found. Please check your .env file.",
-      );
-    }
-
-    return await uploadWithAPIKey(formData, apiKey, apiSecret);
   } catch (error) {
     console.error("Error uploading to Pinata:", error);
     throw new Error(`Pinata upload failed: ${error.message}`);

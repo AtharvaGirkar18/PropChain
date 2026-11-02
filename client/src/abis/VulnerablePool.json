@@ -1,0 +1,18 @@
+{
+  "contractName": "VulnerablePool",
+  "abi": [
+    {"inputs":[{"name":"loanToken_","type":"address"},{"name":"collateralToken_","type":"address"},{"name":"ammPool_","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+    {"inputs":[{"name":"amount","type":"uint256"}],"name":"fund","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"name":"receiver","type":"address"},{"name":"amount","type":"uint256"},{"name":"data","type":"bytes"}],"name":"flashLoan","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"name":"amount","type":"uint256"}],"name":"depositCollateral","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"name":"amount","type":"uint256"}],"name":"borrow","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"name":"amount","type":"uint256"}],"name":"withdrawCollateral","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[],"name":"getCollateralPrice","outputs":[{"name":"price","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"loanToken","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"collateralToken","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"ammPool","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"","type":"address"}],"name":"borrowed","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"","type":"address"}],"name":"collateralBalance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"}
+  ]
+}

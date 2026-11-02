@@ -1,296 +1,169 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState } from "react";
+import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
 import "./App.css";
-import {
-  connectWallet,
-  getAccount,
-  getBalance,
-  watchAccountChanges,
-  watchChainChanges,
-} from "./utils/web3";
-import RegisterProperty from "./components/RegisterProperty";
-import TransferOwnership from "./components/TransferOwnership";
-import PropertyDetails from "./components/PropertyDetails";
-import DisputePanel from "./components/DisputePanel";
+import { WalletProvider, useWallet } from "./context/WalletContext";
+import { getContractsForChain, hasValidAddress } from "./config/contracts";
 
-function App() {
-  const [account, setAccount] = useState(null);
-  const [balance, setBalance] = useState("0");
-  const [connected, setConnected] = useState(false);
-  const [activeTab, setActiveTab] = useState("register");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+import Marketplace from "./pages/Marketplace";
+import VaultDashboard from "./pages/VaultDashboard";
+import Trade from "./pages/Trade";
+import Stake from "./pages/Stake";
+import Governance from "./pages/Governance";
+import Admin from "./pages/Admin";
+import WalletModal from "./components/WalletModal";
+import PriceTicker from "./components/PriceTicker";
+import Oracle from "./pages/Oracle";
+import PropPriceOracle from "./pages/PropPriceOracle";
+import PropertyDetail from "./pages/PropertyDetail";
+import SecurityLab from "./pages/SecurityLab";
 
-  // Contract addresses (update these after deployment)
-  const LAND_REGISTRY_ADDRESS = "0x1a34839636dF0434CEeD7205982c7BC5BF669613";
-  const PROPERTY_DISPUTE_ADDRESS = "0xEc0221773836852DBe1E75B2E276483f802ab50A";
+// Suppress Web3Modal ENS resolution errors that cause React error overlay
+window.addEventListener("unhandledrejection", (event) => {
+  if (event.reason && event.reason.message && event.reason.message.includes("ResolverNotFound")) {
+    event.preventDefault(); // Prevent the error overlay
+  }
+});
 
-  const updateBalance = useCallback(async (accountAddress) => {
-    try {
-      if (!accountAddress) {
-        console.log("No account address provided");
-        setBalance("0");
-        return;
-      }
-      console.log("updateBalance called with:", accountAddress);
-      const bal = await getBalance(accountAddress);
-      console.log("Got balance:", bal, "Type:", typeof bal);
+const NAV_ITEMS = [
+  { to: "/", label: "🏠 Marketplace" },
+  { to: "/vault", label: "🏦 Vault" },
+  { to: "/trade", label: "📈 Trade" },
+  { to: "/stake", label: "🌾 Yield Farm" },
+  { to: "/oracle", label: "🔮 Oracle" },
+  { to: "/prop-price", label: "💱 PROP Price" },
+  { to: "/security-lab", label: "🛡️ Security Lab" },
+  { to: "/governance", label: "🗳️ Governance" },
+  { to: "/admin", label: "⚙️ Admin" },
+];
 
-      // Ensure it's a valid number
-      if (bal && bal !== "0" && bal !== "0.0") {
-        console.log("Setting balance to:", bal);
-        setBalance(bal.toString());
-      } else {
-        console.log("Balance returned was empty or zero");
-        setBalance("0");
-      }
-    } catch (err) {
-      console.error("Error getting balance:", err);
-      setBalance("0");
-    }
-  }, []);
+function AppShell() {
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [marketRefreshKey, setMarketRefreshKey] = useState(0);
+  const { account, chainId } = useWallet();
 
-  const handleAccountChange = useCallback(
-    (newAccount) => {
-      setAccount(newAccount);
-      updateBalance(newAccount);
-    },
-    [updateBalance],
-  );
+  const contracts = useMemo(() => getContractsForChain(chainId), [chainId]);
+  const landRegistryAddress = contracts?.landRegistry || "";
+  const propertyDisputeAddress = contracts?.propertyDispute || "";
+  const addressesReady =
+    hasValidAddress(landRegistryAddress) &&
+    hasValidAddress(propertyDisputeAddress);
 
-  const handleChainChange = useCallback((chainId) => {
-    console.log("Chain changed to:", chainId);
-    // You can add logic here to warn if not on correct network
-    if (chainId !== 1337 && chainId !== 5777 && chainId !== 1) {
-      setError("Please connect to Ganache network (localhost:7545)");
-    } else {
-      setError(null);
-    }
-  }, []);
-
-  const initializeWallet = useCallback(async () => {
-    const savedAccount = getAccount();
-    console.log("Saved account on init:", savedAccount);
-    if (savedAccount) {
-      setAccount(savedAccount);
-      setConnected(true);
-      // Delay to ensure Web3 is ready
-      setTimeout(() => {
-        updateBalance(savedAccount);
-      }, 1000);
-    }
-  }, [updateBalance]);
-
-  useEffect(() => {
-    // Initialize wallet connection on mount
-    initializeWallet();
-
-    // Watch for account and chain changes
-    watchAccountChanges(handleAccountChange);
-    watchChainChanges(handleChainChange);
-
-    return () => {
-      // Cleanup listeners if needed
-    };
-  }, [initializeWallet, handleAccountChange, handleChainChange]);
-
-  const handleConnectWallet = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await connectWallet();
-
-      if (result.success) {
-        setAccount(result.account);
-        setConnected(true);
-        setSuccess(`Connected to ${result.account}`);
-        // Delay balance fetch to ensure Web3 is ready
-        setTimeout(() => {
-          updateBalance(result.account);
-        }, 500);
-        setTimeout(() => setSuccess(null), 3000);
-      } else {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError("Failed to connect wallet: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+  const pushSuccess = (message) => {
+    setSuccess(message);
+    setTimeout(() => setSuccess(""), 3500);
   };
 
-  const handleSetError = (msg) => {
-    setError(msg);
-  };
 
-  const handleSetSuccess = (msg) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(null), 3000);
-  };
 
   return (
-    <div className="App">
-      <header className="header">
-        <div className="header-content">
-          <h1>🏠 Land Registry DApp</h1>
-          <p className="subtitle">
-            Blockchain-based Property Ownership & Dispute Management
-          </p>
-        </div>
+    <BrowserRouter>
+      <div className="app-shell">
+        <aside className="sidebar">
+          <div className="brand">
+            <h1>PropChain</h1>
+            <p>Tokenized Real Estate Labs</p>
+          </div>
+          <nav>
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/"}
+                className={({ isActive }) =>
+                  `nav-item ${isActive ? "active" : ""}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
 
-        <div className="wallet-section">
-          {!connected ? (
-            <button
-              className="btn btn-primary"
-              onClick={handleConnectWallet}
-              disabled={loading}
-            >
-              {loading ? "Connecting..." : "Connect MetaMask"}
-            </button>
-          ) : (
-            <div className="wallet-info">
-              <div className="account-display">
-                <span className="label">Account:</span>
-                <span className="value">
-                  {account?.substring(0, 6)}...
-                  {account?.substring(account.length - 4)}
-                </span>
+        <main className="content">
+          <header className="topbar">
+            <div>
+              <h2>PropChain</h2>
+              <p>Decentralized Real Estate Investment &amp; Yield Platform</p>
+            </div>
+
+            <div className="topbar-actions">
+              <PriceTicker />
+              <div className="wallet-box">
+                <WalletModal />
               </div>
-              <div className="balance-display">
-                <span className="label">Balance:</span>
-                <span className="value">
-                  {loading
-                    ? "Loading..."
-                    : balance && balance !== "0"
-                      ? `${parseFloat(balance).toFixed(4)} ETH`
-                      : "0.0000 ETH"}
-                </span>
-                <button
-                  className="btn btn-small"
-                  onClick={() => {
-                    console.log("Refreshing balance for account:", account);
-                    updateBalance(account);
-                  }}
-                  disabled={loading}
-                  style={{
-                    marginLeft: "0.5rem",
-                    padding: "0.25rem 0.5rem",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  🔄
-                </button>
-              </div>
+            </div>
+          </header>
+
+          {!addressesReady && (
+            <div className="alert alert-warning">
+              Contract addresses are not fully configured for this chain. Update
+              client/src/config/contracts.js after deployments.
             </div>
           )}
-        </div>
-      </header>
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
+          {success && <div className="alert alert-success">{success}</div>}
 
-      {connected && (
-        <main className="main-content">
-          <div className="tabs">
-            <button
-              className={`tab-button ${activeTab === "register" ? "active" : ""}`}
-              onClick={() => setActiveTab("register")}
-            >
-              📝 Register Property
-            </button>
-            <button
-              className={`tab-button ${activeTab === "transfer" ? "active" : ""}`}
-              onClick={() => setActiveTab("transfer")}
-            >
-              🔄 Transfer Ownership
-            </button>
-            <button
-              className={`tab-button ${activeTab === "details" ? "active" : ""}`}
-              onClick={() => setActiveTab("details")}
-            >
-              📋 Property Details
-            </button>
-            <button
-              className={`tab-button ${activeTab === "disputes" ? "active" : ""}`}
-              onClick={() => setActiveTab("disputes")}
-            >
-              ⚠️ Disputes
-            </button>
-          </div>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Marketplace
+                  landRegistryAddress={landRegistryAddress}
+                  refreshKey={marketRefreshKey}
+                  propertyTokenFactoryAddress={contracts?.propertyTokenFactory}
+                  propertyTokens={contracts?.propertyTokens}
+                />
+              }
+            />
+            <Route path="/vault" element={<VaultDashboard />} />
+            <Route path="/trade" element={<Trade />} />
+            <Route path="/stake" element={<Stake />} />
+            <Route path="/oracle" element={<Oracle />} />
+            <Route path="/prop-price" element={<PropPriceOracle />} />
+            <Route path="/security-lab" element={<SecurityLab />} />
+            <Route path="/property/:id" element={<PropertyDetail landRegistryAddress={landRegistryAddress} propertyTokenFactoryAddress={contracts?.propertyTokenFactory} propertyTokens={contracts?.propertyTokens} mockUSDCAddress={contracts?.mockUSDC} />} />
+            <Route
+              path="/governance"
+              element={
+                <Governance
+                  account={account}
+                  landRegistryAddress={landRegistryAddress}
+                  propertyDisputeAddress={propertyDisputeAddress}
+                  governanceDAOAddress={contracts?.governanceDAO}
+                  factoryAddress={contracts?.propertyTokenFactory}
+                  onError={setError}
+                  onSuccess={pushSuccess}
+                />
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <Admin
+                  account={account}
+                  landRegistryAddress={landRegistryAddress}
+                  propertyTokenFactoryAddress={contracts?.propertyTokenFactory}
+                  onError={setError}
+                  onSuccess={pushSuccess}
+                  onMutate={() => setMarketRefreshKey((value) => value + 1)}
+                />
+              }
+            />
 
-          <div className="tab-content">
-            {activeTab === "register" && (
-              <RegisterProperty
-                account={account}
-                landRegistryAddress={LAND_REGISTRY_ADDRESS}
-                onError={handleSetError}
-                onSuccess={handleSetSuccess}
-              />
-            )}
-            {activeTab === "transfer" && (
-              <TransferOwnership
-                account={account}
-                landRegistryAddress={LAND_REGISTRY_ADDRESS}
-                onError={handleSetError}
-                onSuccess={handleSetSuccess}
-              />
-            )}
-            {activeTab === "details" && (
-              <PropertyDetails
-                account={account}
-                landRegistryAddress={LAND_REGISTRY_ADDRESS}
-                onError={handleSetError}
-              />
-            )}
-            {activeTab === "disputes" && (
-              <DisputePanel
-                account={account}
-                landRegistryAddress={LAND_REGISTRY_ADDRESS}
-                propertyDisputeAddress={PROPERTY_DISPUTE_ADDRESS}
-                onError={handleSetError}
-                onSuccess={handleSetSuccess}
-              />
-            )}
-          </div>
+          </Routes>
         </main>
-      )}
+      </div>
+    </BrowserRouter>
+  );
+}
 
-      {!connected && (
-        <main className="main-content">
-          <div className="welcome-message">
-            <h2>👋 Welcome to Land Registry DApp</h2>
-            <p>
-              Connect your MetaMask wallet to manage properties and disputes.
-            </p>
-            <div className="setup-info">
-              <h3>Setup Instructions:</h3>
-              <ol>
-                <li>
-                  Open Ganache and start the development network on port 7545
-                </li>
-                <li>
-                  Import a test account into MetaMask using its private key
-                </li>
-                <li>Connect MetaMask to localhost:7545 (Ganache RPC)</li>
-                <li>
-                  Deploy contracts using:{" "}
-                  <code>truffle migrate --network development</code>
-                </li>
-                <li>Update contract addresses in App.js</li>
-                <li>Click "Connect MetaMask" above</li>
-              </ol>
-            </div>
-          </div>
-        </main>
-      )}
-
-      <footer className="footer">
-        <p>
-          Land Registry DApp © 2024 | Built with Solidity, Truffle, React &
-          Web3.js
-        </p>
-      </footer>
-    </div>
+function App() {
+  return (
+    <WalletProvider>
+      <AppShell />
+    </WalletProvider>
   );
 }
 

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { getContract } from "../utils/web3";
+import { extractSolidityError } from "../utils/web3";
 import LAND_REGISTRY_ABI from "../abis/LandRegistry.json";
+import { Contract } from "ethers";
+import { useWallet } from "../context/WalletContext";
 
 export default function TransferOwnership({
   account,
@@ -8,6 +10,7 @@ export default function TransferOwnership({
   onError,
   onSuccess,
 }) {
+  const { provider, signer } = useWallet();
   const [formData, setFormData] = useState({
     propertyId: "",
     newOwner: "",
@@ -24,76 +27,6 @@ export default function TransferOwnership({
     }));
   };
 
-  /**
-   * Parse Solidity contract error messages for transfer operations
-   */
-  const parseTransferError = (error) => {
-    const errorString = error.toString();
-    
-    // Check for property doesn't exist
-    if (errorString.includes("Property does not exist")) {
-      return {
-        title: "❌ Property Not Found",
-        message: "This property ID does not exist in the registry.",
-        suggestion: "Please check the property ID and try again.",
-      };
-    }
-    
-    // Check for not owner error  
-    if (errorString.includes("not the owner")) {
-      return {
-        title: "❌ Not Property Owner",
-        message: "You are not the owner of this property. Only the owner can transfer ownership.",
-        suggestion: "Verify you're using the correct wallet and property ID.",
-      };
-    }
-    
-    // Check for disputed property
-    if (errorString.includes("disputed")) {
-      return {
-        title: "❌ Property Under Dispute",
-        message: "This property is currently disputed and cannot be transferred until the dispute is resolved.",
-        suggestion: "Wait for the dispute to be resolved before attempting transfer.",
-      };
-    }
-    
-    // Check for zero address error
-    if (errorString.includes("zero") || errorString.includes("address cannot be zero")) {
-      return {
-        title: "❌ Invalid Address",
-        message: "The new owner address cannot be zero address (0x0000...).",
-        suggestion: "Please enter a valid Ethereum address.",
-      };
-    }
-    
-    // Check for same owner error
-    if (errorString.includes("different from current owner")) {
-      return {
-        title: "❌ Same Owner",
-        message: "The new owner address must be different from the current owner.",
-        suggestion: "Please enter a different Ethereum address.",
-      };
-    }
-    
-    // Check for insufficient balance/gas
-    if (errorString.includes("insufficient") || 
-        errorString.includes("balance") ||
-        errorString.includes("gas")) {
-      return {
-        title: "❌ Insufficient Balance or Gas",
-        message: "Your account doesn't have enough ETH for the transaction.",
-        suggestion: "Please add more ETH to your wallet and try again.",
-      };
-    }
-    
-    // Generic fallback
-    return {
-      title: "❌ Transfer Failed",
-      message: errorString.length < 200 ? errorString : "The blockchain transaction failed.",
-      suggestion: "Check your inputs and try again.",
-    };
-  };
-
   const handleFetchProperty = async () => {
     if (!formData.propertyId) {
       onError("Please enter property ID");
@@ -108,10 +41,8 @@ export default function TransferOwnership({
     setFetchingProperty(true);
 
     try {
-      const contract = getContract(LAND_REGISTRY_ABI.abi, landRegistryAddress);
-      const details = await contract.methods
-        .getPropertyDetails(formData.propertyId)
-        .call();
+      const contract = new Contract(landRegistryAddress, LAND_REGISTRY_ABI.abi, provider || signer);
+      const details = await contract.getPropertyDetails(formData.propertyId);
 
       setPropertyDetails({
         id: details.id,
@@ -135,10 +66,7 @@ export default function TransferOwnership({
         return;
       }
     } catch (error) {
-      console.error("Error fetching property:", error);
-      const { title, message, suggestion } = parseTransferError(error);
-      const formattedError = `${title}\n\n${message}\n\n💡 ${suggestion}`;
-      onError(formattedError);
+      onError(`Failed to fetch property: ${extractSolidityError(error)}`);
       setPropertyDetails(null);
     } finally {
       setFetchingProperty(false);
@@ -174,15 +102,15 @@ export default function TransferOwnership({
     setLoading(true);
 
     try {
-      const contract = getContract(LAND_REGISTRY_ABI.abi, landRegistryAddress);
+      const contract = new Contract(landRegistryAddress, LAND_REGISTRY_ABI.abi, signer);
 
-      const tx = await contract.methods
-        .transferOwnership(formData.propertyId, formData.newOwner)
-        .send({ from: account });
-
-      onSuccess(
-        `Ownership transferred successfully! Transaction hash: ${tx.transactionHash}`,
+      const tx = await contract.transferOwnership(
+        formData.propertyId,
+        formData.newOwner,
       );
+      const receipt = await tx.wait();
+
+      onSuccess(`Ownership transferred successfully. Tx: ${receipt.hash}`);
 
       // Reset form
       setFormData({
@@ -191,10 +119,7 @@ export default function TransferOwnership({
       });
       setPropertyDetails(null);
     } catch (error) {
-      console.error("Error transferring ownership:", error);
-      const { title, message, suggestion } = parseTransferError(error);
-      const formattedError = `${title}\n\n${message}\n\n💡 ${suggestion}`;
-      onError(formattedError);
+      onError(`Transfer failed: ${extractSolidityError(error)}`);
     } finally {
       setLoading(false);
     }

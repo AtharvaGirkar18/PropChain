@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import { getContract } from "../utils/web3";
+import { extractSolidityError } from "../utils/web3";
 import LAND_REGISTRY_ABI from "../abis/LandRegistry.json";
+import { Contract } from "ethers";
+import { useWallet } from "../context/WalletContext";
 
 export default function PropertyDetails({
   account,
   landRegistryAddress,
   onError,
 }) {
+  const { provider, signer } = useWallet();
   const [propertyId, setPropertyId] = useState("");
   const [propertyData, setPropertyData] = useState(null);
   const [ownershipHistory, setOwnershipHistory] = useState([]);
@@ -29,20 +32,15 @@ export default function PropertyDetails({
     setLoading(true);
 
     try {
-      const contract = getContract(LAND_REGISTRY_ABI.abi, landRegistryAddress);
+      const contract = new Contract(
+        landRegistryAddress,
+        LAND_REGISTRY_ABI.abi,
+        provider || signer
+      );
 
-      // Fetch property details
-      const details = await contract.methods
-        .getPropertyDetails(propertyId)
-        .call();
-
-      // Fetch ownership history
-      const history = await contract.methods
-        .getOwnershipHistory(propertyId)
-        .call();
-
-      // Check if title is clean
-      const clean = await contract.methods.isTitleClean(propertyId).call();
+      const details = await contract.getPropertyDetails(propertyId);
+      const history = await contract.getOwnershipHistory(propertyId);
+      const clean = await contract.isTitleClean(propertyId);
 
       setPropertyData({
         id: details.id,
@@ -52,16 +50,13 @@ export default function PropertyDetails({
         price: details.price.toString(),
         documentHash: details.documentHash,
         disputed: details.disputed,
-        timestamp: new Date(
-          parseInt(details.timestamp) * 1000,
-        ).toLocaleString(),
+        timestamp: new Date(parseInt(details.timestamp) * 1000).toLocaleString(),
       });
 
       setOwnershipHistory(history);
       setTitleClean(clean);
     } catch (error) {
-      console.error("Error fetching property details:", error);
-      onError(`Property not found or error fetching details: ${error.message}`);
+      onError(`Property lookup failed: ${extractSolidityError(error)}`);
       setPropertyData(null);
       setOwnershipHistory([]);
       setTitleClean(null);
@@ -89,16 +84,27 @@ export default function PropertyDetails({
               style={{ flex: 1 }}
               min="1"
             />
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? "Loading..." : "Search"}
             </button>
           </div>
         </div>
       </form>
+
+      {/* How-to guide shown when nothing has been searched yet */}
+      {!propertyData && !loading && (
+        <div className="card">
+          <h3>📝 How to Verify a Property</h3>
+          <ol style={{ marginLeft: "1.5rem", color: "var(--text-soft)", lineHeight: "1.8" }}>
+            <li><strong style={{ color: "var(--text-main)" }}>Enter Property ID:</strong> Get this from the registration receipt or contract events.</li>
+            <li><strong style={{ color: "var(--text-main)" }}>Click Search:</strong> The system will fetch details from the blockchain.</li>
+            <li><strong style={{ color: "var(--text-main)" }}>Review Details:</strong> Verify location, owner, documents, and dispute status.</li>
+            <li><strong style={{ color: "var(--text-main)" }}>Check Title:</strong> Look for the "Title Verification" status badge.</li>
+            <li><strong style={{ color: "var(--text-main)" }}>Review History:</strong> See the complete chain of ownership transfers.</li>
+            <li><strong style={{ color: "var(--text-main)" }}>Verify Documents:</strong> Click the IPFS hash to view uploaded documents.</li>
+          </ol>
+        </div>
+      )}
 
       {propertyData && (
         <div className="card">
@@ -106,7 +112,7 @@ export default function PropertyDetails({
 
           <div className="property-detail">
             <label>Property ID:</label>
-            <span className="value">{propertyData.id}</span>
+            <span className="value">{propertyData.id?.toString()}</span>
           </div>
 
           <div className="property-detail">
@@ -116,9 +122,7 @@ export default function PropertyDetails({
 
           <div className="property-detail">
             <label>Current Owner:</label>
-            <span className="value" style={{ fontSize: "0.9rem" }}>
-              {propertyData.owner}
-            </span>
+            <span className="value" style={{ fontSize: "0.9rem" }}>{propertyData.owner}</span>
           </div>
 
           <div className="property-detail">
@@ -129,21 +133,18 @@ export default function PropertyDetails({
           <div className="property-detail">
             <label>Price:</label>
             <span className="value">
-              {(parseFloat(propertyData.price) / 1e18).toFixed(2)} ETH (
-              {propertyData.price} Wei)
+              {(parseFloat(propertyData.price) / 1e18).toFixed(6)} ETH ({propertyData.price} Wei)
             </span>
           </div>
 
           <div className="property-detail">
             <label>Document Hash (IPFS):</label>
-            <span
-              className="value"
-              style={{ fontSize: "0.9rem", wordBreak: "break-all" }}
-            >
+            <span className="value" style={{ fontSize: "0.9rem", wordBreak: "break-all" }}>
               <a
                 href={`https://ipfs.io/ipfs/${propertyData.documentHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                style={{ color: "var(--accent-secondary)" }}
               >
                 {propertyData.documentHash}
               </a>
@@ -157,22 +158,14 @@ export default function PropertyDetails({
 
           <div className="property-detail">
             <label>Status:</label>
-            <span
-              className={`property-status ${
-                propertyData.disputed ? "status-disputed" : "status-clean"
-              }`}
-            >
+            <span className={`property-status ${propertyData.disputed ? "status-disputed" : "status-clean"}`}>
               {propertyData.disputed ? "⚠️ DISPUTED" : "✅ CLEAR"}
             </span>
           </div>
 
           <div className="property-detail">
             <label>Title Verification:</label>
-            <span
-              className={`property-status ${
-                titleClean ? "status-clean" : "status-disputed"
-              }`}
-            >
+            <span className={`property-status ${titleClean ? "status-clean" : "status-disputed"}`}>
               {titleClean ? "✅ Title is CLEAN" : "❌ Title has issues"}
             </span>
           </div>
@@ -182,24 +175,18 @@ export default function PropertyDetails({
       {ownershipHistory && ownershipHistory.length > 0 && (
         <div className="card">
           <h3>Ownership History</h3>
-          <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
+          <p style={{ marginBottom: "1rem", color: "var(--text-soft)" }}>
             Complete chain of ownership from registration to present:
           </p>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {ownershipHistory.map((owner, index) => (
               <div
                 key={index}
                 style={{
-                  padding: "1rem",
-                  backgroundColor: "#f9fafb",
-                  borderRadius: "0.5rem",
-                  borderLeft: "4px solid #6366f1",
+                  padding: "0.9rem 1rem",
+                  backgroundColor: "rgba(34, 211, 238, 0.07)",
+                  borderRadius: "10px",
+                  borderLeft: "4px solid var(--accent-secondary)",
                   display: "flex",
                   alignItems: "center",
                   gap: "1rem",
@@ -213,17 +200,18 @@ export default function PropertyDetails({
                     width: "2rem",
                     height: "2rem",
                     borderRadius: "50%",
-                    backgroundColor: "#6366f1",
-                    color: "white",
+                    backgroundColor: "var(--accent-secondary)",
+                    color: "#06202b",
                     fontWeight: "bold",
+                    flexShrink: 0,
                   }}
                 >
                   {index + 1}
                 </span>
-                <span style={{ fontSize: "0.9rem", wordBreak: "break-all" }}>
+                <span style={{ fontSize: "0.9rem", wordBreak: "break-all", color: "var(--text-main)" }}>
                   {owner}
                   {index === ownershipHistory.length - 1 && (
-                    <span style={{ color: "#10b981", marginLeft: "0.5rem" }}>
+                    <span style={{ color: "#86efac", marginLeft: "0.5rem", fontWeight: 600 }}>
                       (Current Owner)
                     </span>
                   )}
@@ -231,49 +219,6 @@ export default function PropertyDetails({
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {!propertyData && !loading && (
-        <div className="card" style={{ backgroundColor: "#f0f9ff" }}>
-          <h3>📝 How to Verify a Property</h3>
-          <ol style={{ marginLeft: "1.5rem" }}>
-            <li>
-              <strong>Enter Property ID:</strong> You can get this from the
-              property registration receipt or contract events
-            </li>
-            <li>
-              <strong>Click Search:</strong> The system will fetch details from
-              the blockchain
-            </li>
-            <li>
-              <strong>Review Details:</strong> Verify location, owner,
-              documents, and dispute status
-            </li>
-            <li>
-              <strong>Check Title:</strong> Look for the "Title Verification"
-              status badge
-            </li>
-            <li>
-              <strong>Review History:</strong> See the complete chain of
-              ownership transfers
-            </li>
-            <li>
-              <strong>Verify Documents:</strong> Click on the IPFS hash to view
-              uploaded documents
-            </li>
-          </ol>
-        </div>
-      )}
-
-      {!propertyData && propertyId && !loading && (
-        <div className="empty-state" style={{ color: "#ef4444" }}>
-          <h3>❌ Property Not Found</h3>
-          <p>No property found with ID: {propertyId}</p>
-          <p style={{ fontSize: "0.9rem", marginTop: "1rem" }}>
-            Make sure the property ID is correct and the property has been
-            registered.
-          </p>
         </div>
       )}
     </div>
